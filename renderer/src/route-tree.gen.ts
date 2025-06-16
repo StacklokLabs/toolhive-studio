@@ -8,67 +8,67 @@
 // You should NOT make any changes in this file as it will be overwritten.
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
-import { Route as rootRouteImport } from "./routes/__root"
-import { Route as StoreRouteImport } from "./routes/store"
-import { Route as ShutdownRouteImport } from "./routes/shutdown"
-import { Route as SecretsSetupRouteImport } from "./routes/secrets-setup"
-import { Route as ClientsRouteImport } from "./routes/clients"
-import { Route as IndexRouteImport } from "./routes/index"
+import { Route as rootRouteImport } from './routes/__root'
+import { Route as StoreRouteImport } from './routes/store'
+import { Route as ShutdownRouteImport } from './routes/shutdown'
+import { Route as SecretsSetupRouteImport } from './routes/secrets-setup'
+import { Route as ClientsRouteImport } from './routes/clients'
+import { Route as IndexRouteImport } from './routes/index'
 
 const StoreRoute = StoreRouteImport.update({
-  id: "/store",
-  path: "/store",
+  id: '/store',
+  path: '/store',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ShutdownRoute = ShutdownRouteImport.update({
-  id: "/shutdown",
-  path: "/shutdown",
+  id: '/shutdown',
+  path: '/shutdown',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SecretsSetupRoute = SecretsSetupRouteImport.update({
-  id: "/secrets-setup",
-  path: "/secrets-setup",
+  id: '/secrets-setup',
+  path: '/secrets-setup',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ClientsRoute = ClientsRouteImport.update({
-  id: "/clients",
-  path: "/clients",
+  id: '/clients',
+  path: '/clients',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
-  id: "/",
-  path: "/",
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
-  "/": typeof IndexRoute
-  "/clients": typeof ClientsRoute
-  "/secrets-setup": typeof SecretsSetupRoute
-  "/shutdown": typeof ShutdownRoute
-  "/store": typeof StoreRoute
+  '/': typeof IndexRoute
+  '/clients': typeof ClientsRoute
+  '/secrets-setup': typeof SecretsSetupRoute
+  '/shutdown': typeof ShutdownRoute
+  '/store': typeof StoreRoute
 }
 export interface FileRoutesByTo {
-  "/": typeof IndexRoute
-  "/clients": typeof ClientsRoute
-  "/secrets-setup": typeof SecretsSetupRoute
-  "/shutdown": typeof ShutdownRoute
-  "/store": typeof StoreRoute
+  '/': typeof IndexRoute
+  '/clients': typeof ClientsRoute
+  '/secrets-setup': typeof SecretsSetupRoute
+  '/shutdown': typeof ShutdownRoute
+  '/store': typeof StoreRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  "/": typeof IndexRoute
-  "/clients": typeof ClientsRoute
-  "/secrets-setup": typeof SecretsSetupRoute
-  "/shutdown": typeof ShutdownRoute
-  "/store": typeof StoreRoute
+  '/': typeof IndexRoute
+  '/clients': typeof ClientsRoute
+  '/secrets-setup': typeof SecretsSetupRoute
+  '/shutdown': typeof ShutdownRoute
+  '/store': typeof StoreRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: "/" | "/clients" | "/secrets-setup" | "/shutdown" | "/store"
+  fullPaths: '/' | '/clients' | '/secrets-setup' | '/shutdown' | '/store'
   fileRoutesByTo: FileRoutesByTo
-  to: "/" | "/clients" | "/secrets-setup" | "/shutdown" | "/store"
-  id: "__root__" | "/" | "/clients" | "/secrets-setup" | "/shutdown" | "/store"
+  to: '/' | '/clients' | '/secrets-setup' | '/shutdown' | '/store'
+  id: '__root__' | '/' | '/clients' | '/secrets-setup' | '/shutdown' | '/store'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -79,40 +79,40 @@ export interface RootRouteChildren {
   StoreRoute: typeof StoreRoute
 }
 
-declare module "@tanstack/react-router" {
+declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    "/store": {
-      id: "/store"
-      path: "/store"
-      fullPath: "/store"
+    '/store': {
+      id: '/store'
+      path: '/store'
+      fullPath: '/store'
       preLoaderRoute: typeof StoreRouteImport
       parentRoute: typeof rootRouteImport
     }
-    "/shutdown": {
-      id: "/shutdown"
-      path: "/shutdown"
-      fullPath: "/shutdown"
+    '/shutdown': {
+      id: '/shutdown'
+      path: '/shutdown'
+      fullPath: '/shutdown'
       preLoaderRoute: typeof ShutdownRouteImport
       parentRoute: typeof rootRouteImport
     }
-    "/secrets-setup": {
-      id: "/secrets-setup"
-      path: "/secrets-setup"
-      fullPath: "/secrets-setup"
+    '/secrets-setup': {
+      id: '/secrets-setup'
+      path: '/secrets-setup'
+      fullPath: '/secrets-setup'
       preLoaderRoute: typeof SecretsSetupRouteImport
       parentRoute: typeof rootRouteImport
     }
-    "/clients": {
-      id: "/clients"
-      path: "/clients"
-      fullPath: "/clients"
+    '/clients': {
+      id: '/clients'
+      path: '/clients'
+      fullPath: '/clients'
       preLoaderRoute: typeof ClientsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    "/": {
-      id: "/"
-      path: "/"
-      fullPath: "/"
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
