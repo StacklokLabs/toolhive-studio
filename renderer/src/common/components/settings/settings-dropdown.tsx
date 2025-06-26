@@ -1,4 +1,4 @@
-import { SettingsIcon, Check } from 'lucide-react'
+import { SettingsIcon, Check, Loader } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,6 +12,7 @@ import {
   useAutoLaunchStatus,
   useSetAutoLaunch,
 } from '@/common/hooks/use-auto-launch'
+import { useMutation, useQuery } from '@tanstack/react-query'
 
 export function SettingsDropdown({ className }: { className?: string }) {
   const { data: autoLaunchStatus, isLoading, refetch } = useAutoLaunchStatus()
@@ -34,6 +35,28 @@ export function SettingsDropdown({ className }: { className?: string }) {
       await window.electronAPI.quitApp()
     }
   }
+
+  ///////////////////////////////////////////////////
+  // Sentry
+  ///////////////////////////////////////////////////
+
+  const { mutateAsync: sentryOptIn, isPending: isOptInPending } = useMutation({
+    mutationFn: window.electronAPI.sentry.optIn,
+  })
+
+  const { mutateAsync: sentryOptOut, isPending: isOptOutPending } = useMutation(
+    {
+      mutationFn: window.electronAPI.sentry.optOut,
+    }
+  )
+
+  const { data: isTelemetryEnabled, isPending: isSentryLoading } = useQuery({
+    queryFn: window.electronAPI.sentry.isEnabled,
+    queryKey: ['sentry.is-enabled', { isOptInPending, isOptOutPending }],
+  })
+
+  const isSentryPending: boolean =
+    isSentryLoading || isOptInPending || isOptOutPending
 
   if (typeof window === 'undefined' || !window.electronAPI) {
     return null
@@ -62,6 +85,17 @@ export function SettingsDropdown({ className }: { className?: string }) {
         </DropdownMenuItem>
         <DropdownMenuItem>
           <span>Check for updates</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={() => (isTelemetryEnabled ? sentryOptOut() : sentryOptIn())}
+          disabled={isSentryPending}
+        >
+          <span>Telemetry</span>
+          {isSentryPending ? (
+            <Loader className="ml-auto h-4 w-4 animate-spin" />
+          ) : isTelemetryEnabled ? (
+            <Check className="ml-auto h-4 w-4" />
+          ) : null}
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem
