@@ -40,6 +40,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
     }
   },
 
+  sentry: {
+    isEnabled: () => ipcRenderer.invoke('sentry.is-enabled'),
+    optIn: () => ipcRenderer.invoke('sentry.opt-in'),
+    optOut: () => ipcRenderer.invoke('sentry.opt-out'),
+  },
+
   // Window controls
   windowControls: {
     minimize: () => ipcRenderer.invoke('window-minimize'),
@@ -64,6 +70,11 @@ export interface ElectronAPI {
       shouldUseDarkColors: boolean
       themeSource: 'system' | 'light' | 'dark'
     }>
+  }
+  sentry: {
+    isEnabled: () => Promise<boolean>
+    optIn: () => Promise<boolean>
+    optOut: () => Promise<boolean>
   }
   isMac: boolean
   isWindows: boolean

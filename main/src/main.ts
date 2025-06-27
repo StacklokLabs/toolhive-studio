@@ -19,8 +19,15 @@ import net from 'node:net'
 import { getCspString } from './csp'
 import { stopAllServers } from './graceful-exit'
 
+import Store from 'electron-store'
+
+const store = new Store<{
+  isTelemetryEnabled: boolean
+}>({ defaults: { isTelemetryEnabled: true } })
+
 Sentry.init({
   dsn: import.meta.env.VITE_SENTRY_DSN,
+  beforeSend: (event) => (store.get('isTelemetryEnabled', true) ? event : null),
 })
 
 // Forge environment variables
@@ -381,4 +388,22 @@ ipcMain.handle('window-close', () => {
 
 ipcMain.handle('window-is-maximized', () => {
   return mainWindow?.isMaximized() ?? false
+})
+
+// ────────────────────────────────────────────────────────────────────────────
+//  Sentry IPC handlers
+// ────────────────────────────────────────────────────────────────────────────
+
+ipcMain.handle('sentry.is-enabled', () => {
+  return store.get('isTelemetryEnabled', true)
+})
+
+ipcMain.handle('sentry.opt-out', (): boolean => {
+  store.set('isTelemetryEnabled', false)
+  return store.get('isTelemetryEnabled', false)
+})
+
+ipcMain.handle('sentry.opt-in', (): boolean => {
+  store.set('isTelemetryEnabled', true)
+  return store.get('isTelemetryEnabled', true)
 })
