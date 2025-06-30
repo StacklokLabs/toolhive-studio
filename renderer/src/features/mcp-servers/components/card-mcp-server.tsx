@@ -25,14 +25,20 @@ import { useSearch } from '@tanstack/react-router'
 import { getApiV1BetaRegistryByNameServersByServerName } from '@/common/api/generated/sdk.gen'
 import { useEffect, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
+import { trackEvent } from '@/common/lib/analytics'
 
 type CardContentMcpServerProps = {
   status: WorkloadsWorkload['status']
   statusContext: WorkloadsWorkload['status_context']
   name: string
+  transport: WorkloadsWorkload['transport_type']
 }
 
-function CardContentMcpServer({ name, status }: CardContentMcpServerProps) {
+function CardContentMcpServer({
+  name,
+  status,
+  transport,
+}: CardContentMcpServerProps) {
   const isRunning = status === 'running'
   const { mutateAsync: restartMutate, isPending: isRestartPending } =
     useMutationRestartServer({
@@ -52,17 +58,25 @@ function CardContentMcpServer({ name, status }: CardContentMcpServerProps) {
             isPending={isRestartPending || isStopPending}
             mutate={() => {
               if (isRunning) {
-                return stopMutate({
+                stopMutate({
                   path: {
                     name,
                   },
                 })
+                return trackEvent(`Workload ${name} stopped`, {
+                  workload: name,
+                  transport,
+                })
               }
 
-              return restartMutate({
+              restartMutate({
                 path: {
                   name,
                 },
+              })
+              return trackEvent(`Workload ${name} started`, {
+                workload: name,
+                transport,
               })
             }}
           />
@@ -76,10 +90,12 @@ export function CardMcpServer({
   name,
   status,
   statusContext,
+  transport,
 }: {
   name: string
   status: WorkloadsWorkload['status']
   statusContext: WorkloadsWorkload['status_context']
+  transport: WorkloadsWorkload['transport_type']
 }) {
   const confirm = useConfirm()
   const { mutateAsync: deleteServer, isPending: isDeletePending } =
@@ -218,6 +234,7 @@ export function CardMcpServer({
         status={status}
         statusContext={statusContext}
         name={name}
+        transport={transport}
       />
     </Card>
   )
