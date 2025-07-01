@@ -18,6 +18,7 @@ import { prepareSecretsWithoutNamingCollision } from '../../../common/lib/secret
 import { Link } from '@tanstack/react-router'
 import { Button } from '@/common/components/ui/button'
 import type { DefinedSecret, PreparedSecret } from '@/common/types/secrets'
+import { trackEvent } from '@/common/lib/analytics'
 
 type SaveSecretFn = UseMutateAsyncFunction<
   V1CreateSecretResponse,
@@ -287,6 +288,11 @@ export async function orchestrateRunRegistryServer({
     try {
       await createWorkload({
         body: createRequest,
+      })
+      trackEvent(`Workload ${data.serverName} started`, {
+        workload: data.serverName,
+        transport: server.transport,
+        'route.pathname': '/registry',
       })
     } catch (error) {
       console.debug('👉 error:', error)
