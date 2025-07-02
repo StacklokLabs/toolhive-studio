@@ -28,10 +28,10 @@ import type {
   RegistryImageMetadata,
 } from '@/common/api/generated/types.gen'
 import { zodV4Resolver } from '@/common/lib/zod-v4-resolver'
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { Label } from '@/common/components/ui/label'
 import { cn } from '@/common/lib/utils'
-import { AsteriskIcon } from 'lucide-react'
+import { AsteriskIcon, ExternalLink, Loader, X } from 'lucide-react'
 import { groupEnvVars } from '../lib/group-env-vars'
 import {
   getFormSchemaRunFromRegistry,
@@ -40,6 +40,15 @@ import {
 import { FormComboboxSecretStore } from '@/common/components/secrets/form-combobox-secrets-store'
 import { useQuery } from '@tanstack/react-query'
 import { getApiV1BetaWorkloadsOptions } from '@/common/api/generated/@tanstack/react-query.gen'
+import {
+  Alert,
+  AlertTitle,
+  AlertDescription,
+} from '@/common/components/ui/alert'
+import type {
+  InstallServerCheck,
+  InstallServerMutation,
+} from '../hooks/use-run-from-registry'
 
 /**
  * Renders an asterisk icon & tooltip for required fields.
@@ -203,7 +212,8 @@ interface FormRunFromRegistryProps {
   server: RegistryImageMetadata | null
   isOpen: boolean
   onOpenChange: (open: boolean) => void
-  onSubmit: (data: FormSchemaRunFromRegistry) => void
+  onSubmit: InstallServerMutation
+  checkServerStatus: InstallServerCheck
 }
 
 export function FormRunFromRegistry({
@@ -211,7 +221,10 @@ export function FormRunFromRegistry({
   isOpen,
   onOpenChange,
   onSubmit,
+  checkServerStatus,
 }: FormRunFromRegistryProps) {
+  const [error, setError] = useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const groupedEnvVars = useMemo(
     () => groupEnvVars(server?.env_vars || []),
     [server?.env_vars]
@@ -246,10 +259,33 @@ export function FormRunFromRegistry({
     },
   })
 
-  const onValidate = (data: FormSchemaRunFromRegistry) => {
-    onSubmit(data)
-    onOpenChange(false)
-    form.reset()
+  const onSubmitForm = async (data: FormSchemaRunFromRegistry) => {
+    if (!server) return
+
+    setIsSubmitting(true)
+    if (error) {
+      setError(null)
+    }
+
+    onSubmit(
+      { server, data },
+      {
+        onSuccess: () => {
+          console.debug('👉 onSuccess')
+          checkServerStatus(data)
+          onOpenChange(false)
+        },
+        onSettled: (_, error) => {
+          setIsSubmitting(false)
+          if (!error) {
+            form.reset()
+          }
+        },
+        onError: (error) => {
+          setError(error.message)
+        },
+      }
+    )
   }
 
   if (!server) return null
@@ -265,7 +301,7 @@ export function FormRunFromRegistry({
       >
         <Form {...form} key={server?.name}>
           <form
-            onSubmit={form.handleSubmit(onValidate)}
+            onSubmit={form.handleSubmit(onSubmitForm)}
             className="mx-auto flex h-full w-full max-w-3xl flex-col"
           >
             <DialogHeader className="mb-4 p-6">
@@ -275,104 +311,152 @@ export function FormRunFromRegistry({
                 installation.
               </DialogDescription>
             </DialogHeader>
-
-            <div className="relative max-h-[65dvh] space-y-4 overflow-y-auto px-6">
-              <FormField
-                control={form.control}
-                name="serverName"
-                render={({ field }) => (
-                  <FormItem className="mb-10">
-                    <FormLabel>Server Name</FormLabel>
-                    <FormDescription>
-                      Choose a unique name for this server instance
-                    </FormDescription>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        placeholder="e.g. my-custom-server"
-                        autoFocus
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
+            {isSubmitting && (
+              <div className="relative space-y-4 px-6">
+                <Alert>
+                  <Loader className="size-4 animate-spin" />
+                  <AlertTitle>Installing server...</AlertTitle>
+                  <AlertDescription>
+                    We are pulling the server image from the registry and
+                    installing it.
+                  </AlertDescription>
+                </Alert>
+              </div>
+            )}
+            {!isSubmitting && (
+              <div className="relative max-h-[65dvh] space-y-4 overflow-y-auto px-6">
+                {error && (
+                  <Alert variant="destructive">
+                    <AlertTitle className="flex items-center justify-between">
+                      Error
+                      <Button
+                        variant="ghost"
+                        className="cursor-pointer"
+                        size="xs"
+                        onClick={() => setError(null)}
+                      >
+                        <X />
+                      </Button>
+                    </AlertTitle>
+                    <AlertDescription>
+                      <p>
+                        We were unable to install the server. Please try again.
+                        If this issue persists, our community can help
+                        troubleshoot the problem.
+                        <Button asChild variant="link" size="xs">
+                          <a
+                            href="https://discord.gg/stacklok"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            <ExternalLink />
+                            Join Discord Support
+                          </a>
+                        </Button>
+                      </p>
+                    </AlertDescription>
+                  </Alert>
                 )}
-              />
+                <FormField
+                  control={form.control}
+                  name="serverName"
+                  render={({ field }) => (
+                    <FormItem className="mb-10">
+                      <FormLabel>Server Name</FormLabel>
+                      <FormDescription>
+                        Choose a unique name for this server instance
+                      </FormDescription>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          placeholder="e.g. my-custom-server"
+                          autoFocus
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-              <FormField
-                control={form.control}
-                name="cmd_arguments"
-                render={({ field }) => (
-                  <FormItem className="mb-10">
-                    <FormLabel>Command arguments</FormLabel>
-                    <FormDescription>
-                      Space separated arguments for the command.
-                    </FormDescription>
-                    <FormControl>
-                      <Input
-                        placeholder="e.g. -y --oauth-setup"
-                        defaultValue={field.value}
-                        onChange={(e) => field.onChange(e.target.value)}
-                        name={field.name}
+                <FormField
+                  control={form.control}
+                  name="cmd_arguments"
+                  render={({ field }) => (
+                    <FormItem className="mb-10">
+                      <FormLabel>Command arguments</FormLabel>
+                      <FormDescription>
+                        Space separated arguments for the command.
+                      </FormDescription>
+                      <FormControl>
+                        <Input
+                          placeholder="e.g. -y --oauth-setup"
+                          defaultValue={field.value}
+                          onChange={(e) => field.onChange(e.target.value)}
+                          name={field.name}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {groupedEnvVars.secrets[0] ? (
+                  <section className="mb-10">
+                    <Label className="mb-2" htmlFor="secrets.0.value">
+                      Secrets
+                    </Label>
+
+                    <p className="text-muted-foreground mb-6 text-sm">
+                      All secrets are encrypted and securely stored by ToolHive.
+                    </p>
+
+                    {groupedEnvVars.secrets.map((secret, index) => (
+                      <SecretRow
+                        form={form}
+                        secret={secret}
+                        index={index}
+                        key={secret.name}
                       />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                    ))}
+                  </section>
+                ) : null}
 
-              {groupedEnvVars.secrets[0] ? (
-                <section className="mb-10">
-                  <Label className="mb-2" htmlFor="secrets.0.value">
-                    Secrets
-                  </Label>
+                {groupedEnvVars.envVars[0] ? (
+                  <section className="mb-10">
+                    <Label className="mb-2" htmlFor="envVars.0.value">
+                      Environment variables
+                    </Label>
 
-                  <p className="text-muted-foreground mb-6 text-sm">
-                    All secrets are encrypted and securely stored by ToolHive.
-                  </p>
+                    <p className="text-muted-foreground mb-6 text-sm">
+                      Environment variables are used to pass configuration
+                      settings to the server.
+                    </p>
 
-                  {groupedEnvVars.secrets.map((secret, index) => (
-                    <SecretRow
-                      form={form}
-                      secret={secret}
-                      index={index}
-                      key={secret.name}
-                    />
-                  ))}
-                </section>
-              ) : null}
-
-              {groupedEnvVars.envVars[0] ? (
-                <section className="mb-10">
-                  <Label className="mb-2" htmlFor="envVars.0.value">
-                    Environment variables
-                  </Label>
-
-                  <p className="text-muted-foreground mb-6 text-sm">
-                    Environment variables are used to pass configuration
-                    settings to the server.
-                  </p>
-
-                  {groupedEnvVars.envVars.map((envVar, index) => (
-                    <EnvVarRow
-                      form={form}
-                      envVar={envVar}
-                      index={index}
-                      key={envVar.name}
-                    />
-                  ))}
-                </section>
-              ) : null}
-            </div>
+                    {groupedEnvVars.envVars.map((envVar, index) => (
+                      <EnvVarRow
+                        form={form}
+                        envVar={envVar}
+                        index={index}
+                        key={envVar.name}
+                      />
+                    ))}
+                  </section>
+                ) : null}
+              </div>
+            )}
 
             <DialogFooter className="p-6">
               <Button
                 type="button"
                 variant="outline"
+                disabled={isSubmitting}
                 onClick={() => onOpenChange(false)}
               >
                 Cancel
               </Button>
-              <Button type="submit">Install Server</Button>
+              <Button disabled={isSubmitting} type="submit">
+                Install Server
+              </Button>
             </DialogFooter>
           </form>
         </Form>
