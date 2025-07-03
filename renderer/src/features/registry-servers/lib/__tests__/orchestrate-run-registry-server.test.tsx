@@ -9,6 +9,13 @@ import { mswEndpoint } from '@/common/mocks/msw-endpoint'
 import type { FormSchemaRunFromRegistry } from '../get-form-schema-run-from-registry'
 import { orchestrateRunRegistryServer } from '../orchestrate-run-registry-server'
 import type { RegistryImageMetadata } from '@/common/api/generated'
+import * as Sentry from '@sentry/electron/renderer'
+
+vi.mock('@sentry/electron/renderer', () => ({
+  startSpan: vi.fn(),
+}))
+
+const mockStartSpan = vi.mocked(Sentry.startSpan)
 
 vi.mock('sonner', async () => {
   const original = await vi.importActual<typeof import('sonner')>('sonner')
@@ -77,6 +84,22 @@ it('submits without any optional fields', async () => {
   expect(toast.success).toHaveBeenCalledWith(
     '"Test Server" started successfully.',
     expect.any(Object)
+  )
+
+  expect(mockStartSpan).toHaveBeenCalledWith(
+    {
+      name: 'Workload Test Server started',
+      op: 'user.event',
+      attributes: {
+        'analytics.source': 'tracking',
+        'analytics.type': 'event',
+        workload: 'Test Server',
+        transport: 'stdio',
+        'route.pathname': '/registry',
+        timestamp: expect.any(String),
+      },
+    },
+    expect.any(Function)
   )
 })
 
