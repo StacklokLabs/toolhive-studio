@@ -47,6 +47,7 @@ import {
 } from '@/common/components/ui/alert'
 import { useRunFromRegistry } from '../hooks/use-run-from-registry'
 import { Progress } from '@/common/components/ui/progress'
+import { Separator } from '@/common/components/ui/separator'
 
 /**
  * Renders an asterisk icon & tooltip for required fields.
@@ -298,7 +299,7 @@ export function FormRunFromRegistry({
           }
         },
         onError: (error) => {
-          setError(error.message)
+          setError(typeof error === 'string' ? error : error.message)
         },
       }
     )
@@ -331,7 +332,11 @@ export function FormRunFromRegistry({
               <div className="relative space-y-4 px-6">
                 <Alert>
                   <Loader className="size-4 animate-spin" />
-                  <AlertTitle>Installing server...</AlertTitle>
+                  <AlertTitle>
+                    {isPendingSecrets
+                      ? 'Creating Secrets...'
+                      : 'Installing server...'}
+                  </AlertTitle>
                   <AlertDescription>
                     {isPendingSecrets && loadingSecrets
                       ? loadingSecrets?.text
@@ -355,7 +360,7 @@ export function FormRunFromRegistry({
                 {error && (
                   <Alert variant="destructive">
                     <AlertTitle className="flex items-center justify-between">
-                      Error
+                      Something went wrong
                       <Button
                         variant="ghost"
                         className="cursor-pointer"
@@ -366,11 +371,17 @@ export function FormRunFromRegistry({
                       </Button>
                     </AlertTitle>
                     <AlertDescription>
+                      {!isErrorSecrets && (
+                        <>
+                          <p>Error: {error}</p>
+                          <Separator className="my-2" />
+                        </>
+                      )}
                       <p>
                         {isErrorSecrets
                           ? 'We were unable to create the secrets for the server'
                           : 'We were unable to install the server'}
-                        . Please try again. If this issue persists, our
+                        . Please try again and If this issue persists, our
                         community can help troubleshoot the problem.
                         <Button asChild variant="link" size="xs">
                           <a
