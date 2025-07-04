@@ -31,7 +31,7 @@ import { zodV4Resolver } from '@/common/lib/zod-v4-resolver'
 import { useMemo, useState } from 'react'
 import { Label } from '@/common/components/ui/label'
 import { cn } from '@/common/lib/utils'
-import { AsteriskIcon, ExternalLink, Loader, X } from 'lucide-react'
+import { AsteriskIcon } from 'lucide-react'
 import { groupEnvVars } from '../lib/group-env-vars'
 import {
   getFormSchemaRunFromRegistry,
@@ -40,14 +40,9 @@ import {
 import { FormComboboxSecretStore } from '@/common/components/secrets/form-combobox-secrets-store'
 import { useQuery } from '@tanstack/react-query'
 import { getApiV1BetaWorkloadsOptions } from '@/common/api/generated/@tanstack/react-query.gen'
-import {
-  Alert,
-  AlertTitle,
-  AlertDescription,
-} from '@/common/components/ui/alert'
 import { useRunFromRegistry } from '../hooks/use-run-from-registry'
-import { Progress } from '@/common/components/ui/progress'
-import { Separator } from '@/common/components/ui/separator'
+import { LoadingStateAlert } from './loading-state-alert'
+import { AlertErrorFormSubmission } from './alert-error-form-submission'
 
 /**
  * Renders an asterisk icon & tooltip for required fields.
@@ -329,73 +324,19 @@ export function FormRunFromRegistry({
               </DialogDescription>
             </DialogHeader>
             {isSubmitting && (
-              <div className="relative space-y-4 px-6">
-                <Alert>
-                  <Loader className="size-4 animate-spin" />
-                  <AlertTitle>
-                    {isPendingSecrets
-                      ? 'Creating Secrets...'
-                      : 'Installing server...'}
-                  </AlertTitle>
-                  <AlertDescription>
-                    {isPendingSecrets && loadingSecrets
-                      ? loadingSecrets?.text
-                      : 'We are pulling the server image from the registry and installing it.'}
-                    {isPendingSecrets && loadingSecrets && (
-                      <Progress
-                        value={
-                          (loadingSecrets?.completedCount /
-                            loadingSecrets?.secretsCount) *
-                          100
-                        }
-                        className="my-2 w-full"
-                      />
-                    )}
-                  </AlertDescription>
-                </Alert>
-              </div>
+              <LoadingStateAlert
+                isPendingSecrets={isPendingSecrets}
+                loadingSecrets={loadingSecrets}
+              />
             )}
             {!isSubmitting && (
               <div className="relative max-h-[65dvh] space-y-4 overflow-y-auto px-6">
                 {error && (
-                  <Alert variant="destructive">
-                    <AlertTitle className="flex items-center justify-between">
-                      Something went wrong
-                      <Button
-                        variant="ghost"
-                        className="cursor-pointer"
-                        size="xs"
-                        onClick={() => setError(null)}
-                      >
-                        <X />
-                      </Button>
-                    </AlertTitle>
-                    <AlertDescription>
-                      {!isErrorSecrets && (
-                        <>
-                          <p>Error: {error}</p>
-                          <Separator className="my-2" />
-                        </>
-                      )}
-                      <p>
-                        {isErrorSecrets
-                          ? 'We were unable to create the secrets for the server'
-                          : 'We were unable to install the server'}
-                        . Please try again and If this issue persists, our
-                        community can help troubleshoot the problem.
-                        <Button asChild variant="link" size="xs">
-                          <a
-                            href="https://discord.gg/stacklok"
-                            target="_blank"
-                            rel="noopener noreferrer"
-                          >
-                            <ExternalLink />
-                            Join Discord Support
-                          </a>
-                        </Button>
-                      </p>
-                    </AlertDescription>
-                  </Alert>
+                  <AlertErrorFormSubmission
+                    error={error}
+                    isErrorSecrets={isErrorSecrets}
+                    onDismiss={() => setError(null)}
+                  />
                 )}
                 <FormField
                   control={form.control}
