@@ -45,10 +45,8 @@ import {
   AlertTitle,
   AlertDescription,
 } from '@/common/components/ui/alert'
-import type {
-  InstallServerCheck,
-  InstallServerMutation,
-} from '../hooks/use-run-from-registry'
+import { useRunFromRegistry } from '../hooks/use-run-from-registry'
+import { Progress } from '@/common/components/ui/progress'
 
 /**
  * Renders an asterisk icon & tooltip for required fields.
@@ -212,23 +210,42 @@ interface FormRunFromRegistryProps {
   server: RegistryImageMetadata | null
   isOpen: boolean
   onOpenChange: (open: boolean) => void
-  onSubmit: InstallServerMutation
-  checkServerStatus: InstallServerCheck
 }
 
 export function FormRunFromRegistry({
   server,
   isOpen,
   onOpenChange,
-  onSubmit,
-  checkServerStatus,
 }: FormRunFromRegistryProps) {
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [loadingSecrets, setLoadingSecrets] = useState<{
+    text: string
+    completedCount: number
+    secretsCount: number
+  } | null>(null)
   const groupedEnvVars = useMemo(
     () => groupEnvVars(server?.env_vars || []),
     [server?.env_vars]
   )
+  const {
+    installServerMutation,
+    checkServerStatus,
+    isErrorSecrets,
+    isPendingSecrets,
+  } = useRunFromRegistry({
+    onSecretSuccess: (completedCount, secretsCount) => {
+      setLoadingSecrets((prev) => ({
+        ...prev,
+        text: `Encrypting secrets (${completedCount} of ${secretsCount})...`,
+        completedCount,
+        secretsCount,
+      }))
+    },
+    onSecretError: (error, variables) => {
+      console.debug('👉 onSecretError', error, variables)
+    },
+  })
 
   const { data } = useQuery({
     ...getApiV1BetaWorkloadsOptions({ query: { all: true } }),
@@ -259,7 +276,7 @@ export function FormRunFromRegistry({
     },
   })
 
-  const onSubmitForm = async (data: FormSchemaRunFromRegistry) => {
+  const onSubmitForm = (data: FormSchemaRunFromRegistry) => {
     if (!server) return
 
     setIsSubmitting(true)
@@ -267,11 +284,10 @@ export function FormRunFromRegistry({
       setError(null)
     }
 
-    onSubmit(
+    installServerMutation(
       { server, data },
       {
         onSuccess: () => {
-          console.debug('👉 onSuccess')
           checkServerStatus(data)
           onOpenChange(false)
         },
@@ -317,8 +333,19 @@ export function FormRunFromRegistry({
                   <Loader className="size-4 animate-spin" />
                   <AlertTitle>Installing server...</AlertTitle>
                   <AlertDescription>
-                    We are pulling the server image from the registry and
-                    installing it.
+                    {isPendingSecrets && loadingSecrets
+                      ? loadingSecrets?.text
+                      : 'We are pulling the server image from the registry and installing it.'}
+                    {isPendingSecrets && loadingSecrets && (
+                      <Progress
+                        value={
+                          (loadingSecrets?.completedCount /
+                            loadingSecrets?.secretsCount) *
+                          100
+                        }
+                        className="my-2 w-full"
+                      />
+                    )}
                   </AlertDescription>
                 </Alert>
               </div>
@@ -340,9 +367,11 @@ export function FormRunFromRegistry({
                     </AlertTitle>
                     <AlertDescription>
                       <p>
-                        We were unable to install the server. Please try again.
-                        If this issue persists, our community can help
-                        troubleshoot the problem.
+                        {isErrorSecrets
+                          ? 'We were unable to create the secrets for the server'
+                          : 'We were unable to install the server'}
+                        . Please try again. If this issue persists, our
+                        community can help troubleshoot the problem.
                         <Button asChild variant="link" size="xs">
                           <a
                             href="https://discord.gg/stacklok"
